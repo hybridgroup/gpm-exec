@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+set -eu
+
+usage() {
+cat << EOF
+SYNOPSIS
+
+      gpm-exec is a [gpm](https://github.com/pote/gpm) plugin that provides
+      the ability to execute a Go project within the context of its locally vendored GOPATH
+
+USAGE
+      $ gpm exec                # Executes commands in the context of a locally vendored GOPATH if it exists
+      $ gpm exec install [name] # Installs Godeps into local vendored GOPATH
+      $ gpm exec version        # Prints version information for the plugin.
+      $ gpm exec help           # Prints this message.
+EOF
+}
+
+exec() {
+  if [ -a "`pwd`/.gpm-exec" ]
+  then
+    while read line
+    do
+      VENDOR=$line
+      break
+    done < "`pwd`/.gpm-exec"
+    GOPATH=$VENDOR GOBIN=$VENDOR/bin PATH=$VENDOR/bin:$PATH $@
+  else
+    echo "Vendor path not set in your .gpm-exec! Using system GOPATH...."
+    $@
+  fi
+}
+
+install() {
+  if [ $# -eq 1 ]
+  then
+    VENDOR="`pwd`/vendor"
+  else
+    VENDOR=$2
+    if [ "$(echo "$VENDOR" | cut -c1)" != "/" ];
+    then
+      VENDOR=`pwd`/$VENDOR
+    fi
+  fi
+  echo "Vendoring to $VENDOR"
+  echo $VENDOR > .gpm-exec
+  mkdir -p $VENDOR/{src,pkg,bin}
+  while read line
+  do
+    VENDOR=$line
+    break
+  done < "`pwd`/.gpm-exec"
+
+  GOPATH=$VENDOR GOBIN=$VENDOR/bin PATH=$VENDOR/bin:$PATH gpm install
+}
+
+## Execution
+case "${1:-"exec"}" in
+  "version")
+    echo ">> gpm-exec v0.0.1"
+    ;;
+  "help")
+    usage
+    ;;
+  "install")
+    install ${@}
+    ;;
+  *)
+    if [ $# -eq 0 ]
+    then
+      usage
+      exit 1
+    else
+      exec ${@}
+    fi
+    ;;
+esac
