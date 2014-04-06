@@ -1,4 +1,4 @@
-# gpm-bootstrap
+# gpm-exec
 
 gpm-exec is a [gpm](https://github.com/pote/gpm) plugin that provides the ability to execute a Go project within the context of its locally vendored GOPATH
 
